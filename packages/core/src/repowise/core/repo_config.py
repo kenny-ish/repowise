@@ -473,6 +473,7 @@ def _git_ignores(repo_path: Path | str, pattern: str) -> bool:
             cwd=repo_path,
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
             timeout=10,
         )
     except (OSError, subprocess.SubprocessError):

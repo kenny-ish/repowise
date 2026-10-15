@@ -240,6 +240,21 @@ def test_update_evidence_keeps_only_commits_in_this_update_range():
     assert update_evidence_by_file(diffs, meta, set()) == {}
 
 
+def test_commits_in_range_closes_stdin(tmp_path, monkeypatch):
+    import repowise.core.analysis.decisions.evolution as evolution_mod
+
+    seen: dict[str, object] = {}
+    real_run = subprocess.run
+
+    def _spy(cmd, **kwargs):
+        seen.update(kwargs)
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(evolution_mod.subprocess, "run", _spy)
+    assert commits_in_range(tmp_path, "no-such-ref", None) == set()
+    assert seen["stdin"] is subprocess.DEVNULL
+
+
 def test_commits_in_range_lists_short_shas_between_refs(tmp_path):
     def git(*args: str) -> str:
         return subprocess.run(

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import yaml
 
 from repowise.core.repo_config import (
+    _git_ignores,
     changed_config_dependencies,
     config_dependency_fingerprints,
 )
@@ -16,6 +18,19 @@ def _write_config(repo: Path, **values: object) -> None:
     (config_dir / "config.yaml").write_text(
         yaml.safe_dump(values, sort_keys=False), encoding="utf-8"
     )
+
+
+def test_git_ignore_check_does_not_inherit_stdin(tmp_path: Path, monkeypatch) -> None:
+    seen: dict[str, object] = {}
+    real_run = subprocess.run
+
+    def _spy(cmd, **kwargs):
+        seen.update(kwargs)
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", _spy)
+    assert _git_ignores(tmp_path, "missing.txt") is False
+    assert seen["stdin"] is subprocess.DEVNULL
 
 
 def test_dependency_fingerprints_classify_config_keys(tmp_path: Path) -> None:

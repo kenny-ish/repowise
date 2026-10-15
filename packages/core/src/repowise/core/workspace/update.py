@@ -180,6 +180,7 @@ def get_head_commit(repo_path: Path) -> str | None:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
             timeout=10,
         )
         if result.returncode == 0:
@@ -197,6 +198,7 @@ def count_commits_between(repo_path: Path, base: str, head: str) -> int:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
             timeout=10,
         )
         if result.returncode == 0:
@@ -219,6 +221,7 @@ def commit_exists(repo_path: Path, sha: str) -> bool:
             ["git", "cat-file", "-e", f"{sha}^{{commit}}"],
             cwd=str(repo_path),
             capture_output=True,
+            stdin=subprocess.DEVNULL,
             timeout=10,
         )
         return result.returncode == 0
@@ -251,6 +254,7 @@ def clear_stale_update_pending(repo_path: Path, indexed_head: str | None) -> Non
                 ["git", "merge-base", "--is-ancestor", indexed_head, pending_head],
                 cwd=str(repo_path),
                 capture_output=True,
+                stdin=subprocess.DEVNULL,
                 timeout=10,
             )
             if ahead.returncode == 0:

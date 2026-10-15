@@ -15,6 +15,8 @@ from repowise.core.workspace.config import RepoEntry, WorkspaceConfig
 from repowise.core.workspace.update import (
     RepoUpdateResult,
     check_repo_staleness,
+    clear_stale_update_pending,
+    commit_exists,
     count_commits_between,
     get_head_commit,
     read_state_commit,
@@ -225,6 +227,32 @@ class TestCountCommitsBetween:
         repo = _make_git_repo(tmp_path, "myrepo")
         head = get_head_commit(repo)
         assert count_commits_between(repo, head, head) == 0
+
+    def test_git_checks_do_not_inherit_stdin(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        repo = _make_git_repo(tmp_path, "myrepo")
+        head = get_head_commit(repo)
+        (repo / ".repowise").mkdir()
+        (repo / ".repowise" / ".update.pending").write_text("not-a-ref")
+
+        import repowise.core.workspace.update as update_mod
+
+        seen: list[dict[str, object]] = []
+        real_run = subprocess.run
+
+        def _spy(cmd, **kwargs):
+            seen.append(kwargs)
+            return real_run(cmd, **kwargs)
+
+        monkeypatch.setattr(update_mod.subprocess, "run", _spy)
+        assert get_head_commit(repo) == head
+        assert count_commits_between(repo, head, head) == 0
+        assert commit_exists(repo, head)
+        clear_stale_update_pending(repo, head)
+
+        assert len(seen) == 4
+        assert all(call.get("stdin") is subprocess.DEVNULL for call in seen)
 
 
 # ---------------------------------------------------------------------------

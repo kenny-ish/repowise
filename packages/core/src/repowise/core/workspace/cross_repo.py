@@ -278,6 +278,7 @@ def _parse_git_log(
             cwd=str(repo_path),
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
             timeout=60,
             encoding="utf-8",
         )

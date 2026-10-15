@@ -624,6 +624,7 @@ def commits_in_range(repo_path: Any, base_ref: str, head: str | None) -> set[str
             ],
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
             timeout=60,
         )
     except (OSError, subprocess.SubprocessError) as exc:
