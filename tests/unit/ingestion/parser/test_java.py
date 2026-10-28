@@ -188,3 +188,43 @@ def test_a_qualified_super_call_keeps_its_qualifier(parser: ASTParser) -> None:
     source = b"package b;\nclass Sub extends Base {\n  class In { void q() { Sub.super.m(); } }\n}\n"
     calls = parser.parse_file(_make_file_info("b/Sub.java", "java"), source).calls
     assert [(c.receiver_name, c.scope_name, c.target_name) for c in calls] == [("super", "Sub", "m")]
+
+
+MODIFIERS_SOURCE = b"""package p;
+
+interface H {
+    void handle(int x);
+    default void a() {}
+    static void b() {}
+}
+
+abstract class K {
+    static void s() {}
+    public final void done() {}
+    protected abstract void q();
+    private static int count() { return 0; }
+    @Override
+    public String toString() { return ""; }
+}
+"""
+
+
+def test_declarations_record_their_keyword_modifiers(parser: ASTParser) -> None:
+    """Keywords land on ``Symbol.modifiers``, so an abstract interface method is
+    told from a ``default`` or ``static`` one; ``@Override`` stays a decorator."""
+    result = parser.parse_file(_make_file_info("p/H.java", "java"), MODIFIERS_SOURCE)
+    expected = {
+        "H": (),
+        "handle": (),
+        "a": ("default",),
+        "b": ("static",),
+        "K": ("abstract",),
+        "s": ("static",),
+        "done": ("public", "final"),
+        "q": ("protected", "abstract"),
+        "count": ("private", "static"),
+        "toString": ("public",),
+    }
+    symbols = {s.name: s for s in result.symbols if s.name in expected}
+    assert {name: s.modifiers for name, s in symbols.items()} == expected
+    assert any("@Override" in d for d in symbols["toString"].decorators)
